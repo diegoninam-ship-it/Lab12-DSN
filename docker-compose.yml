@@ -13,6 +13,16 @@ services:
       timeout: 5s
       retries: 10
 
+  migrate:
+    build: ./backend
+    env_file:
+      - ./backend/.env
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["sh", "-c", "alembic upgrade head && python -m app.seed"]
+    restart: "no"
+
   backend:
     build: ./backend
     env_file:
@@ -20,6 +30,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "8000:8000"
 
