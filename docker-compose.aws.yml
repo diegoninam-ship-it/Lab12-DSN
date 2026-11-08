@@ -1,0 +1,39 @@
+# Etapa 4 (la ejecuta el usuario, nunca el agente). Pensado para correr
+# dentro de cada instancia del Auto Scaling Group, detrás del ALB.
+#
+# Sin "db" ni "migrate": RDS PostgreSQL vive aparte, en subredes
+# privadas. La migración y el seed se corren una sola vez, a mano, desde
+# una instancia vía Session Manager:
+#   docker compose -f docker-compose.aws.yml run --rm backend alembic upgrade head
+#   docker compose -f docker-compose.aws.yml run --rm backend python -m app.seed
+#
+# Las variables de entorno (DATABASE_URL, JWT_SECRET, SERVER_ID, etc.)
+# se exportan antes de "docker compose up", normalmente leídas desde SSM
+# Parameter Store por el user data de la instancia.
+#
+# Imágenes en Docker Hub, linux/amd64: diegozx/lab12-backend y
+# diegozx/lab12-frontend.
+
+services:
+  backend:
+    image: diegozx/lab12-backend:latest
+    platform: linux/amd64
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      SERVER_ID: ${SERVER_ID}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  frontend:
+    image: diegozx/lab12-frontend:latest
+    platform: linux/amd64
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    restart: unless-stopped
