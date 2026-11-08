@@ -4,7 +4,9 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from app.config import settings
+from app.routers import admin as admin_router
 from app.routers import auth as auth_router
+from app.routers import partidos as partidos_router
 
 app = FastAPI(title="Lab12 - Predicciones del Mundial")
 
@@ -38,6 +40,8 @@ app.add_middleware(SoloJSONMiddleware)
 app.add_middleware(ServidorHeaderMiddleware)
 
 app.include_router(auth_router.router)
+app.include_router(partidos_router.router)
+app.include_router(admin_router.router)
 
 
 @app.get("/api/health")

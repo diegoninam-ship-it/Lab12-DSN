@@ -166,7 +166,7 @@ def _crear_usuarios_demo(session) -> dict[str, Usuario]:
         usuario = session.query(Usuario).filter_by(apodo=apodo).first()
         if usuario is None:
             usuario = Usuario(
-                email=f"{apodo}@demo.local",
+                email=f"{apodo}@demo-mundial.com",
                 apodo=apodo,
                 password_hash=hash_password(CONTRASENA_DEMO),
                 rol=Rol.USER,
