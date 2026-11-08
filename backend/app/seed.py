@@ -10,12 +10,12 @@ Uso:
 """
 
 import argparse
-import bcrypt
 from datetime import datetime, timedelta, timezone
 
 from app.config import settings
 from app.db import SessionLocal
 from app.invitaciones import generar_codigo_invitacion
+from app.seguridad import hash_password
 from app.models import (
     AnalisisIA,
     Equipo,
@@ -104,10 +104,6 @@ def _ahora() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _hash(password: str) -> str:
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-
 def _crear_admin(session) -> None:
     if not (settings.admin_email and settings.admin_password and settings.admin_apodo):
         raise RuntimeError(
@@ -119,7 +115,7 @@ def _crear_admin(session) -> None:
         Usuario(
             email=settings.admin_email,
             apodo=settings.admin_apodo,
-            password_hash=_hash(settings.admin_password),
+            password_hash=hash_password(settings.admin_password),
             rol=Rol.ADMIN,
         )
     )
@@ -172,7 +168,7 @@ def _crear_usuarios_demo(session) -> dict[str, Usuario]:
             usuario = Usuario(
                 email=f"{apodo}@demo.local",
                 apodo=apodo,
-                password_hash=_hash(CONTRASENA_DEMO),
+                password_hash=hash_password(CONTRASENA_DEMO),
                 rol=Rol.USER,
             )
             session.add(usuario)

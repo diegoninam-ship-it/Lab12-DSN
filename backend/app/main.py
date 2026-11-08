@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 
 from app.config import settings
+from app.routers import auth as auth_router
 
 app = FastAPI(title="Lab12 - Predicciones del Mundial")
+
+MUTACIONES = {"POST", "PUT", "PATCH", "DELETE"}
 
 
 class ServidorHeaderMiddleware(BaseHTTPMiddleware):
@@ -15,7 +18,26 @@ class ServidorHeaderMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class SoloJSONMiddleware(BaseHTTPMiddleware):
+    """Sección 6: las mutaciones solo aceptan application/json."""
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        if request.method in MUTACIONES and request.url.path.startswith("/api"):
+            content_length = request.headers.get("content-length")
+            tiene_cuerpo = content_length not in (None, "0")
+            content_type = request.headers.get("content-type", "")
+            if tiene_cuerpo and not content_type.startswith("application/json"):
+                return JSONResponse(
+                    status_code=415,
+                    content={"detail": "Las mutaciones solo aceptan application/json"},
+                )
+        return await call_next(request)
+
+
+app.add_middleware(SoloJSONMiddleware)
 app.add_middleware(ServidorHeaderMiddleware)
+
+app.include_router(auth_router.router)
 
 
 @app.get("/api/health")
