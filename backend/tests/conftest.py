@@ -17,6 +17,7 @@ from app.config import settings
 from app.db import Base
 from app.dependencias import get_db, get_usuario_actual
 from app.main import app
+from app.models import Rol
 
 from tests import fabrica
 
@@ -66,18 +67,44 @@ def usuario(session):
 
 
 @pytest.fixture()
-def cliente(session, usuario):
+def admin(session):
+    return fabrica.crear_usuario(session, rol=Rol.ADMIN)
+
+
+@pytest.fixture()
+def api(session):
+    """Cliente con la base de datos de pruebas pero SIN forzar un usuario:
+    útil para probar el flujo real de autenticación (registro/login con
+    cookies de verdad)."""
+
     def _get_db():
         yield session
 
-    def _get_usuario_actual():
-        return usuario
-
     app.dependency_overrides[get_db] = _get_db
-    app.dependency_overrides[get_usuario_actual] = _get_usuario_actual
-    with TestClient(app) as client:
-        yield client
+    cliente = TestClient(app)
+    yield cliente
     app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def como(api):
+    """Factoría: `como(usuario)` hace que las próximas peticiones del
+    cliente se autentiquen como ese usuario, sin pasar por login/cookies
+    (eso ya se prueba aparte en test_api_auth.py)."""
+
+    def _como(usuario_elegido):
+        def _get_usuario_actual():
+            return usuario_elegido
+
+        app.dependency_overrides[get_usuario_actual] = _get_usuario_actual
+        return api
+
+    return _como
+
+
+@pytest.fixture()
+def cliente(como, usuario):
+    return como(usuario)
 
 
 @pytest.fixture()

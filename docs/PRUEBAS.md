@@ -33,6 +33,18 @@ Las pruebas de Cierre y Ranking llaman a los endpoints reales con `fastapi.testc
 
 Cobertura de `app/scoring.py` en T1: 94 % (falta solo `recalcular_todo`, que usa el seed y se cubrirá indirectamente más adelante).
 
-## T2–T5
+## T2 — API: autenticación, administración, cierre, permisos de salas
+
+36 pruebas nuevas (60 en total con T1), todas en verde.
+
+- `tests/test_api_auth.py` (10): registro (201 + cookie + autologin, 409 correo/apodo duplicado, 422 password corta/apodo inválido), login (200 + cookie, 401 password incorrecta, 401 usuario inexistente), logout (borra la sesión), `/yo` sin sesión (401). Usa la fixture `api` (sin usuario forzado): las peticiones pasan por el flujo real de cookies, igual que el navegador.
+- `tests/test_api_admin.py` (12): 403 a un usuario no-ADMIN; crear partido (201, 422 si `equipo_local_id == equipo_visitante_id`, 404 si un equipo no existe); editar (200 mientras está `PROGRAMADO`, 409 si ya inició); eliminar (204 sin predicciones, 409 con predicciones); registrar resultado (409 antes de iniciar, 200 + recálculo real de puntajes); anular resultado (409 si no hay resultado, 200 + puntajes a cero).
+- `tests/test_api_salas.py` (14): crear sala (dueño + miembro), 404 a quien no es miembro (detalle y ranking), unirse (200 válido, 200 sin duplicar si ya es miembro, 404 código inválido), el dueño no puede salir (409) pero un miembro sí, regenerar código (403 a quien no es dueño, el código viejo deja de servir), expulsar (403 a quien no es dueño, 409 si el dueño se expulsa a sí mismo, 404 si el expulsado no es miembro), eliminar sala (403 a quien no es dueño, 204 al dueño).
+
+Las pruebas de administración y salas usan la fixture `como(usuario)`: cambia a qué usuario ven las peticiones del cliente sin pasar por login/cookies (eso ya lo prueba `test_api_auth.py` aparte), para poder alternar entre dueño/miembro/externo dentro de la misma prueba.
+
+Cobertura acumulada (T1+T2) de los módulos que estas fases cubren: `app/routers/auth.py` 100%, `app/routers/admin.py` 99%, `app/routers/salas.py` 87%, `app/scoring.py` 94%, `app/models.py` 100%. Los módulos de estadísticas/IA y la lista de partidos quedan con menor cobertura hasta T3–T5 (no son el foco de T2).
+
+## T3–T5
 
 Pendientes.
