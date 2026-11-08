@@ -1,0 +1,283 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, sans-serif;
+  --color-primario: #1d4ed8;
+  --color-borde: #d4d4d8;
+  --color-error: #b91c1c;
+  --color-fondo: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-fondo);
+  color: #1f2937;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.barra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background: white;
+  border-bottom: 1px solid var(--color-borde);
+  padding: 0.75rem 1rem;
+}
+
+.barra nav {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.barra a {
+  color: #374151;
+  text-decoration: none;
+}
+
+.barra a:hover {
+  color: var(--color-primario);
+}
+
+.usuario-actual {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+main {
+  flex: 1;
+  padding: 1rem;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+footer {
+  padding: 0.5rem 1rem;
+  text-align: center;
+  color: #6b7280;
+  border-top: 1px solid var(--color-borde);
+}
+
+.tarjeta-centrada {
+  max-width: 360px;
+  margin: 3rem auto;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-borde);
+}
+
+form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+input,
+select,
+button {
+  font-size: 1rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--color-borde);
+}
+
+button {
+  background: var(--color-primario);
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.peligro {
+  background: #b91c1c;
+}
+
+button.activo {
+  background: #1e3a8a;
+}
+
+.error {
+  color: var(--color-error);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.filtros {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.lista-partidos {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.partido {
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.equipos {
+  display: flex;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.vs {
+  color: #9ca3af;
+}
+
+.meta {
+  display: flex;
+  gap: 0.75rem;
+  color: #6b7280;
+  font-size: 0.85rem;
+  margin: 0.25rem 0;
+}
+
+.estado {
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  background: #e5e7eb;
+}
+
+.estado-FINALIZADO {
+  background: #dcfce7;
+}
+
+.estado-EN_JUEGO {
+  background: #fef9c3;
+}
+
+.prediccion {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.prediccion input {
+  width: 60px;
+}
+
+.puntos {
+  margin-left: auto;
+  font-weight: 600;
+}
+
+.lista-salas {
+  list-style: none;
+  padding: 0;
+}
+
+.lista-salas li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.etiqueta {
+  background: #e0e7ff;
+  color: #3730a3;
+  border-radius: 0.25rem;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.75rem;
+}
+
+.formularios-sala {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.form-admin-partido {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.tarjetas-stats {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.tarjetas-stats li {
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.analisis-ia {
+  margin-top: 1.5rem;
+}
+
+.texto-analisis {
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 0.75rem;
+}
+
+.paginacion {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.acciones-sala {
+  margin-top: 1rem;
+}
+
+.cargando {
+  padding: 2rem;
+  text-align: center;
+}
