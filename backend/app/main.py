@@ -6,6 +6,7 @@ from starlette.responses import JSONResponse, Response
 from app.config import settings
 from app.routers import admin as admin_router
 from app.routers import auth as auth_router
+from app.routers import estadisticas as estadisticas_router
 from app.routers import partidos as partidos_router
 from app.routers import ranking as ranking_router
 from app.routers import salas as salas_router
@@ -45,6 +46,7 @@ app.include_router(auth_router.router)
 app.include_router(partidos_router.router)
 app.include_router(ranking_router.router)
 app.include_router(salas_router.router)
+app.include_router(estadisticas_router.router)
 app.include_router(admin_router.router)
 
 
