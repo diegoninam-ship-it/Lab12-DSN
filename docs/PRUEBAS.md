@@ -76,6 +76,44 @@ docker compose run --rm migrate sh -c "alembic upgrade head && python -m app.see
 
 Los `<select>` de `AdminPartidos.tsx` ("Local", "Visitante", "Fase") y el campo de fecha ("Inicio") no tenían una etiqueta accesible asociada (el texto solo estaba en una `<option>`, no en un `<label>`), así que Playwright no podía ubicarlos con `getByLabel`. Se les agregó `aria-label`: una corrección real de accesibilidad que el E2E encontró, no solo un ajuste para que la prueba pasara.
 
-## T4–T5
+## T4 — Estrés local con Locust: 1 backend vs. 3 backends (sección 17.2)
 
-Pendientes.
+Escenario documentado en `loadtest/README.md`: `loadtest/locustfile.py`, 50 usuarios `cargaNNN` (creados por el seed con `SEED_USUARIOS_CARGA=50`), tareas ponderadas listar partidos (5) / ranking global (3) / predecir un partido `PROGRAMADO` al azar (2) / ranking de una sala (2) / estadísticas propias (1), sin el endpoint de IA. Corrido localmente contra el stack real en Docker: `-u 50 -r 10 -t 2m` (50 usuarios concurrentes, arrancando a 10/s, 2 minutos), una vez con `--scale backend=1` y otra con `--scale backend=3`.
+
+| Métrica | 1 backend | 3 backends |
+|---|---|---|
+| Peticiones totales | 3 322 | 3 448 |
+| Errores | 0 (0.00 %) | 0 (0.00 %) |
+| RPS | 28.60 | 28.94 |
+| Latencia promedio | 47.9 ms | 37.3 ms |
+| Latencia mediana (p50) | 33 ms | 26 ms |
+| p95 | 120 ms | 93 ms |
+| p98 | 240 ms | 100 ms |
+| p99 | 370 ms | 340 ms |
+| Máxima | 411 ms | 417 ms |
+
+Reportes completos (por endpoint, con gráficos): [`docs/locust-1-backend.html`](locust-1-backend.html), [`docs/locust-3-backends.html`](locust-3-backends.html) (datos crudos en los `.csv` junto a cada uno).
+
+**Lectura:** con una carga de 50 usuarios concurrentes ninguna de las dos configuraciones llegó a saturarse (0 errores en ambas, el RPS es prácticamente el mismo porque la carga generada —no el servidor— es el límite a esta escala). Donde sí se nota la diferencia es en la latencia: con 3 réplicas el p95 baja ~22 % y el p98 baja ~58 %, porque cada petición individual espera menos tiempo de CPU disponible al repartirse entre más procesos. La latencia de `POST /api/auth/login` (~350-380 ms, la más alta de toda la prueba) es igual de alta en ambas configuraciones: es el costo fijo de `bcrypt` por petición, que no mejora con más réplicas porque cada una sigue haciendo el hash completo por su cuenta — es esperable y no es un cuello de botella del balanceo.
+
+### Cómo reproducir
+
+```bash
+# backend/.env: SEED_USUARIOS_CARGA=50, CARGA_PASSWORD=<algo>
+docker compose run --rm migrate sh -c "alembic upgrade head && python -m app.seed --reiniciar"
+docker compose up -d --scale backend=1
+locust -f loadtest/locustfile.py --host http://localhost:8080 --headless -u 50 -r 10 -t 2m \
+  --csv docs/locust-1-backend --html docs/locust-1-backend.html
+
+docker compose up -d --scale backend=3
+locust -f loadtest/locustfile.py --host http://localhost:8080 --headless -u 50 -r 10 -t 2m \
+  --csv docs/locust-3-backends --html docs/locust-3-backends.html
+```
+
+### AWS (Etapa 4 — resultados del usuario)
+
+_Pendiente: pegar aquí el resumen de la corrida contra el ALB (10-12 minutos, mismo `locustfile.py`, apuntando al DNS del ALB desde el PC del usuario o AWS CloudShell), para observar el escalamiento de 2 a 3 instancias por `ALBRequestCountPerTarget`._
+
+## T5
+
+Pendiente.

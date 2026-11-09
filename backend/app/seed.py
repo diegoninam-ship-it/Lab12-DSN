@@ -207,6 +207,55 @@ def _crear_salas_demo(session, usuarios: dict[str, Usuario]) -> None:
             session.add(SalaMiembro(sala_id=sala.id, usuario_id=usuarios[apodo].id))
 
 
+def _crear_usuarios_carga(session) -> list[Usuario]:
+    """Sección 12/17.2: si SEED_USUARIOS_CARGA > 0, crea carga001...cargaNNN
+    con CARGA_PASSWORD, para el escenario de estrés de Locust (T4)."""
+    if settings.seed_usuarios_carga <= 0:
+        return []
+
+    usuarios = []
+    for i in range(1, settings.seed_usuarios_carga + 1):
+        apodo = f"carga{i:03d}"
+        usuario = session.query(Usuario).filter_by(apodo=apodo).first()
+        if usuario is None:
+            usuario = Usuario(
+                email=f"{apodo}@carga-mundial.com",
+                apodo=apodo,
+                password_hash=hash_password(settings.carga_password),
+                rol=Rol.USER,
+            )
+            session.add(usuario)
+            session.flush()
+        usuarios.append(usuario)
+    return usuarios
+
+
+def _crear_sala_carga(session, usuarios_carga: list[Usuario]) -> None:
+    """Para que la tarea 'ranking de una sala' del escenario de carga
+    tenga una sala real a consultar: todos los usuarios de carga son
+    miembros de una misma sala."""
+    if not usuarios_carga:
+        return
+
+    sala = session.query(Sala).filter_by(nombre="Carga").first()
+    if sala is None:
+        sala = Sala(
+            nombre="Carga",
+            codigo_invitacion=generar_codigo_invitacion(),
+            dueno_id=usuarios_carga[0].id,
+        )
+        session.add(sala)
+        session.flush()
+
+    miembros_actuales = {
+        sm.usuario_id
+        for sm in session.query(SalaMiembro).filter_by(sala_id=sala.id)
+    }
+    for usuario in usuarios_carga:
+        if usuario.id not in miembros_actuales:
+            session.add(SalaMiembro(sala_id=sala.id, usuario_id=usuario.id))
+
+
 def ejecutar(reiniciar: bool = False) -> None:
     session = SessionLocal()
     try:
@@ -227,6 +276,11 @@ def ejecutar(reiniciar: bool = False) -> None:
             _crear_predicciones_demo(session, partidos, usuarios)
             _crear_salas_demo(session, usuarios)
             session.flush()
+
+        usuarios_carga = _crear_usuarios_carga(session)
+        session.flush()
+        _crear_sala_carga(session, usuarios_carga)
+        session.flush()
 
         recalcular_todo(session)
         session.commit()

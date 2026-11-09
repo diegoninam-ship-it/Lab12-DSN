@@ -21,9 +21,8 @@ node_modules/
 dist/
 frontend/dist/
 
-# Reportes de pruebas
-docs/locust-report*
-docs/*.html
+# Reportes de pruebas (los de docs/ SÍ se versionan: sección 15 pide
+# guardar los reportes de Locust ahí)
 playwright-report/
 test-results/
 
