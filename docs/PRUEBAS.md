@@ -45,6 +45,37 @@ Las pruebas de administración y salas usan la fixture `como(usuario)`: cambia a
 
 Cobertura acumulada (T1+T2) de los módulos que estas fases cubren: `app/routers/auth.py` 100%, `app/routers/admin.py` 99%, `app/routers/salas.py` 87%, `app/scoring.py` 94%, `app/models.py` 100%. Los módulos de estadísticas/IA y la lista de partidos quedan con menor cobertura hasta T3–T5 (no son el foco de T2).
 
-## T3–T5
+## T3 — Playwright E2E + distribución entre backends
+
+4 pruebas E2E con Playwright, todas en verde, corridas contra el stack real en Docker (`http://localhost:8080`, nginx + frontend + backend).
+
+### Cómo correr
+
+```bash
+docker compose up --build -d
+docker compose up -d --scale backend=3   # para que la prueba de distribución tenga sentido
+cd frontend
+npx playwright test
+```
+
+Después de correr las pruebas de admin (crean un partido de prueba), conviene refrescar el seed:
+
+```bash
+docker compose run --rm migrate sh -c "alembic upgrade head && python -m app.seed --reiniciar"
+```
+
+### Pruebas
+
+- `e2e/flujo-principal.spec.ts`:
+  - **Login, predecir, ranking, salas y estadísticas**: inicia sesión como un usuario demo, predice el primer partido `PROGRAMADO`, visita `/mis-predicciones`, `/ranking`, `/salas` y `/estadisticas`, y confirma que el pie de página muestra "Atendido por: ...".
+  - **Un usuario sin rol ADMIN no puede entrar a `/admin/partidos`**: navega directo a la URL y verifica que lo manda de vuelta a `/partidos`.
+  - **Admin puede entrar a `/admin/partidos`, crear un partido y registrar un resultado**: inicia sesión como admin (credenciales leídas de `backend/.env` con `process.loadEnvFile`, nunca hardcodeadas) y usa el formulario de creación.
+- `e2e/distribucion-servidor.spec.ts`: hace 15 peticiones a `/api/whoami` y reúne los valores de la cabecera `X-Servidor`; con una sola réplica se omite (`test.skip`), con `--scale backend=3` confirma que aparece más de un servidor distinto — balanceo real de extremo a extremo, no solo a nivel de `curl`.
+
+### Nota de implementación
+
+Los `<select>` de `AdminPartidos.tsx` ("Local", "Visitante", "Fase") y el campo de fecha ("Inicio") no tenían una etiqueta accesible asociada (el texto solo estaba en una `<option>`, no en un `<label>`), así que Playwright no podía ubicarlos con `getByLabel`. Se les agregó `aria-label`: una corrección real de accesibilidad que el E2E encontró, no solo un ajuste para que la prueba pasara.
+
+## T4–T5
 
 Pendientes.

@@ -81,7 +81,12 @@ export function AdminPartidos() {
 
       <form onSubmit={crear} className="form-admin-partido">
         <h2>Crear partido</h2>
-        <select value={local} onChange={(e) => setLocal(Number(e.target.value))} required>
+        <select
+          aria-label="Local"
+          value={local}
+          onChange={(e) => setLocal(Number(e.target.value))}
+          required
+        >
           <option value="">Local</option>
           {equipos.map((eq) => (
             <option key={eq.id} value={eq.id}>
@@ -89,7 +94,12 @@ export function AdminPartidos() {
             </option>
           ))}
         </select>
-        <select value={visitante} onChange={(e) => setVisitante(Number(e.target.value))} required>
+        <select
+          aria-label="Visitante"
+          value={visitante}
+          onChange={(e) => setVisitante(Number(e.target.value))}
+          required
+        >
           <option value="">Visitante</option>
           {equipos.map((eq) => (
             <option key={eq.id} value={eq.id}>
@@ -98,12 +108,17 @@ export function AdminPartidos() {
           ))}
         </select>
         <input
+          aria-label="Inicio"
           type="datetime-local"
           value={inicio}
           onChange={(e) => setInicio(e.target.value)}
           required
         />
-        <select value={fase} onChange={(e) => setFase(e.target.value as Fase)}>
+        <select
+          aria-label="Fase"
+          value={fase}
+          onChange={(e) => setFase(e.target.value as Fase)}
+        >
           {FASES.map((f) => (
             <option key={f} value={f}>
               {f}
