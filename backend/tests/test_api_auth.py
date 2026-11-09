@@ -119,3 +119,9 @@ def test_logout_borra_la_sesion(api):
 def test_yo_sin_sesion_401(api):
     respuesta = api.get("/api/auth/yo")
     assert respuesta.status_code == 401
+
+
+def test_yo_con_cookie_invalida_401(api):
+    api.cookies.set(NOMBRE_COOKIE, "token-invalido-y-mal-formado")
+    respuesta = api.get("/api/auth/yo")
+    assert respuesta.status_code == 401

@@ -175,3 +175,47 @@ def test_anular_resultado(como, admin, usuario, session):
     assert respuesta.status_code == 200
     assert respuesta.json()["goles_local"] is None
     assert session.get(Puntaje, usuario.id).total == 0
+
+
+def test_editar_partido_inexistente_404(como, admin):
+    respuesta = como(admin).put(
+        "/api/admin/partidos/999999",
+        json={
+            "equipo_local_id": 1,
+            "equipo_visitante_id": 2,
+            "inicio": "2030-01-01T00:00:00Z",
+            "fase": "GRUPOS",
+        },
+    )
+    assert respuesta.status_code == 404
+
+
+def test_eliminar_partido_inexistente_404(como, admin):
+    respuesta = como(admin).delete("/api/admin/partidos/999999")
+    assert respuesta.status_code == 404
+
+
+def test_crear_partido_inicio_sin_zona_horaria_se_asume_utc(como, admin, session):
+    local = fabrica.crear_equipo(session)
+    visitante = fabrica.crear_equipo(session)
+
+    respuesta = como(admin).post(
+        "/api/admin/partidos",
+        json={
+            "equipo_local_id": local.id,
+            "equipo_visitante_id": visitante.id,
+            "inicio": "2030-01-01T00:00:00",
+            "fase": "GRUPOS",
+        },
+    )
+
+    assert respuesta.status_code == 201
+    assert respuesta.json()["inicio"].endswith("Z") or "+00:00" in respuesta.json()["inicio"]
+
+
+def test_registrar_resultado_partido_inexistente_404(como, admin):
+    respuesta = como(admin).put(
+        "/api/admin/partidos/999999/resultado",
+        json={"goles_local": 1, "goles_visitante": 0},
+    )
+    assert respuesta.status_code == 404

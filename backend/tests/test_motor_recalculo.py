@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta, timezone
 
 from app.models import Puntaje
-from app.scoring import recalcular_partido, recalcular_usuario
+from app.scoring import recalcular_partido, recalcular_todo, recalcular_usuario
 
 from tests import fabrica
 
@@ -107,3 +107,22 @@ def test_recalcular_partido_no_toca_a_quien_no_predijo(session):
 
     # usuario_b no tenía predicción en partido_a: su puntaje no cambia.
     assert session.get(Puntaje, usuario_b.id).total == 10
+
+
+def test_recalcular_todo_recalcula_a_todos_los_usuarios(session):
+    """Usado por el seed: recorre todos los usuarios de la base, no solo
+    los de un partido o usuario en particular."""
+    usuario_a = fabrica.crear_usuario(session)
+    usuario_b = fabrica.crear_usuario(session)
+    partido = fabrica.crear_partido(session, inicio=INICIO, resultado=(1, 0))
+    fabrica.crear_prediccion(
+        session, usuario_a, partido, 2, 0, registrado_en=REGISTRADO_SIN_ANTICIPACION
+    )
+    fabrica.crear_prediccion(
+        session, usuario_b, partido, 0, 1, registrado_en=REGISTRADO_SIN_ANTICIPACION
+    )
+
+    recalcular_todo(session)
+
+    assert session.get(Puntaje, usuario_a.id).total == 3
+    assert session.get(Puntaje, usuario_b.id).total == 0

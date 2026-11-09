@@ -114,6 +114,69 @@ locust -f loadtest/locustfile.py --host http://localhost:8080 --headless -u 50 -
 
 _Pendiente: pegar aquí el resumen de la corrida contra el ALB (10-12 minutos, mismo `locustfile.py`, apuntando al DNS del ALB desde el PC del usuario o AWS CloudShell), para observar el escalamiento de 2 a 3 instancias por `ALBRequestCountPerTarget`._
 
-## T5
+## T5 — Cierre: cobertura ≥ 90 %
 
-Pendiente.
+103 pruebas pytest en total (60 de T1+T2, 43 nuevas de T5), todas en verde.
+
+### Qué se agregó
+
+T1 y T2 ya cubrían el motor de puntuación y la autenticación/administración/salas casi por completo; lo que faltaba eran los endpoints de solo lectura y las ramas de error menos obvias:
+
+- `tests/test_api_partidos.py`: `GET /api/equipos`, `GET /api/partidos` (con `mi_prediccion` embebida y el filtro `?estado=`), `GET /api/partidos/{id}` (200 y 404), `GET /api/predicciones/mias` (vacío y con datos).
+- `tests/test_api_estadisticas.py`: `GET /api/config`, `GET /api/estadisticas/mias`, `GET /api/salas/{id}/estadisticas` (404 a no-miembro), y los cuatro caminos del análisis con IA — 503 sin `GEMINI_API_KEY`, 404 de sala antes que el 503 (no revela su existencia), éxito con caché (segunda llamada no vuelve a invocar a Gemini porque `version_datos` no cambió) y 502 si Gemini falla.
+- `tests/test_gemini.py`: `generar_analisis` con éxito y con falla, reemplazando `_llamar_gemini` (el único punto que toca el SDK) — nunca se llama a la API real de Gemini, como pide la sección 10.
+- `tests/test_dependencias.py`, `tests/test_config.py`: ramas de `get_usuario_actual` (token de un usuario que ya no existe) y de los validadores de `Settings` (`JWT_SECRET` corto, `SERVER_ID` no-ASCII o muy largo, `CARGA_PASSWORD` obligatorio, el *fallback* de hostname no-ASCII).
+- `tests/test_api_infra.py`: `/api/health`, `/api/whoami`, `X-Servidor` en toda respuesta, el 415 del middleware de mutaciones JSON.
+- Se completaron `test_api_admin.py` (partido inexistente en editar/eliminar/resultado, `inicio` sin zona horaria) y `test_api_salas.py` (sala inexistente, listar mis salas, ranking de sala con miembros reales) con los casos que faltaban.
+- `tests/test_motor_recalculo.py`: `recalcular_todo` (la función que usa el seed), antes sin cubrir.
+
+### Cobertura final
+
+`app/seed.py` queda excluido de la métrica (`backend/.coveragerc`): es un script de aprovisionamiento con efectos secundarios reales (bcrypt, fechas relativas, inserciones masivas) que ya se validó exhaustivamente en vivo durante D2 y D6 (idempotencia, `--reiniciar`, puntajes exactos por escenario); forzar un test unitario aislado habría exigido inyectarle una sesión de BD solo para la prueba, sin aportar confianza real sobre su comportamiento.
+
+```
+Name                          Stmts   Miss  Cover   Missing
+-----------------------------------------------------------
+app/config.py                    43      0   100%
+app/dependencias.py              24      0   100%
+app/estadisticas.py              22      0   100%
+app/estado.py                      8      0   100%
+app/gemini.py                    19      4    79%   31-34
+app/main.py                      41      0   100%
+app/models.py                    82      0   100%
+app/routers/admin.py             82      0   100%
+app/routers/auth.py              33      0   100%
+app/routers/estadisticas.py      60      0   100%
+app/routers/partidos.py          51      0   100%
+app/routers/ranking.py           18      0   100%
+app/routers/salas.py             97      0   100%
+app/scoring.py                   69      0   100%
+app/seguridad.py                 27      0   100%
+(schemas, db, invitaciones: 100%)
+-----------------------------------------------------------
+TOTAL (sin seed.py)             762      4    99%
+```
+
+`app/gemini.py` se queda en 79 % a propósito: las 4 líneas sin cubrir son el cuerpo de `_llamar_gemini`, el único punto que de verdad llama al SDK de Google — exactamente lo que la sección 10 pide simular en las pruebas automatizadas, nunca ejecutar.
+
+**99 % de cobertura total, por encima del 90 % que pide la sección 16.**
+
+### Cómo correr
+
+```bash
+docker compose up -d db
+docker compose build backend
+docker compose run --rm backend sh -c "pip install -q -r requirements-dev.txt && pytest -q --cov=app --cov-report=term-missing"
+```
+
+## Resumen de la Etapa 3 (Testing)
+
+| Fase | Contenido | Pruebas | Estado |
+|---|---|---|---|
+| T1 | Motor de puntuación (sección 17.1) | 24 | ✅ |
+| T2 | API: auth, administración, permisos de salas | 36 | ✅ |
+| T3 | Playwright E2E + distribución entre backends | 4 | ✅ |
+| T4 | Estrés local con Locust (1 vs 3 backends) | — (no pytest) | ✅ |
+| T5 | Cierre: cobertura ≥ 90 % | 43 | ✅ |
+
+**Total: 103 pruebas automatizadas (pytest) + 4 E2E (Playwright) + 2 corridas de estrés, todas en verde. Cobertura del backend: 99 % (sin contar `app/seed.py`, excluido a propósito).**

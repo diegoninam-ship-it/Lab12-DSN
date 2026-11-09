@@ -28,6 +28,45 @@ def test_no_miembro_recibe_404_en_detalle(como, usuario, session):
     assert respuesta.status_code == 404
 
 
+def test_sala_inexistente_404_en_detalle(como, usuario):
+    respuesta = como(usuario).get("/api/salas/999999")
+    assert respuesta.status_code == 404
+
+
+def test_miembro_ve_el_detalle(como, usuario):
+    sala = _crear_sala(como, usuario)
+
+    respuesta = como(usuario).get(f"/api/salas/{sala['id']}")
+
+    assert respuesta.status_code == 200
+    assert respuesta.json()["id"] == sala["id"]
+
+
+def test_listar_mis_salas(como, usuario):
+    _crear_sala(como, usuario, "Sala A")
+    _crear_sala(como, usuario, "Sala B")
+
+    respuesta = como(usuario).get("/api/salas")
+
+    assert respuesta.status_code == 200
+    nombres = {s["nombre"] for s in respuesta.json()}
+    assert {"Sala A", "Sala B"}.issubset(nombres)
+
+
+def test_ranking_de_sala_con_miembros(como, usuario, session):
+    sala = _crear_sala(como, usuario)
+    miembro = fabrica.crear_usuario(session)
+    como(miembro).post("/api/salas/unirse", json={"codigo": sala["codigo_invitacion"]})
+
+    respuesta = como(usuario).get(f"/api/salas/{sala['id']}/ranking")
+
+    assert respuesta.status_code == 200
+    cuerpo = respuesta.json()
+    assert cuerpo["sala_id"] == sala["id"]
+    apodos = {i["apodo"] for i in cuerpo["items"]}
+    assert {usuario.apodo, miembro.apodo} == apodos
+
+
 def test_no_miembro_recibe_404_en_ranking(como, usuario, session):
     sala = _crear_sala(como, usuario)
     externo = fabrica.crear_usuario(session)
