@@ -112,7 +112,50 @@ locust -f loadtest/locustfile.py --host http://localhost:8080 --headless -u 50 -
 
 ### AWS (Etapa 4 — resultados del usuario)
 
-_Pendiente: pegar aquí el resumen de la corrida contra el ALB (10-12 minutos, mismo `locustfile.py`, apuntando al DNS del ALB desde el PC del usuario o AWS CloudShell), para observar el escalamiento de 2 a 3 instancias por `ALBRequestCountPerTarget`._
+Corrida contra el ALB real (`dsn5a-lab12-dnina-alb-main`), mismo
+`locustfile.py`, 50 usuarios con 5 por segundo de ramp-up, lanzada desde
+PowerShell en la máquina del usuario (duración: 5 min 11 s):
+
+```bash
+$env:CARGA_PASSWORD = "<contraseña de los usuarios carga001..050>"
+python -m locust -f locustfile.py --host http://dsn5a-lab12-dnina-alb-main-1102591083.us-east-1.elb.amazonaws.com
+```
+
+| Métrica | Valor |
+|---|---|
+| Peticiones totales | 7 917 |
+| Errores | 0 (0.00 %) |
+| RPS | 25.43 |
+| Latencia promedio | 229.3 ms |
+| Latencia mediana (p50) | 140 ms |
+| p95 | 590 ms |
+| p99 | 2 300 ms |
+| Máxima | 3 430 ms |
+
+Reporte completo: [`docs/locust-aws-alb.html`](locust-aws-alb.html).
+
+**Escalamiento automático confirmado, en ambos sentidos.** El Auto Scaling
+Group reaccionó dos veces durante y después de la prueba, por la política de
+seguimiento de destino sobre `ALBRequestCountPerTarget` — no por una instancia
+caída (el historial de actividad distingue estos eventos de los reemplazos
+por salud, cuya causa dice "an unhealthy instance needing to be replaced",
+ocurridos antes de esta prueba durante la puesta a punto de la Etapa 4):
+
+| Evento | Hora (UTC) | Capacidad |
+|---|---|---|
+| Scale-out (alarma `AlarmHigh`) | 2026-11-11T21:00:45Z | 2 → 3 |
+| Scale-in (alarma `AlarmLow`) | 2026-11-11T21:23:57Z | 3 → 2 |
+
+El scale-in llegó ~23 minutos después de iniciada la prueba (y ~18 minutos
+después de que Locust terminó de correr), consistente con un periodo de
+enfriamiento más conservador para *reducir* capacidad que para aumentarla —
+evita que el grupo oscile si la carga vuelve a subir en pocos minutos.
+
+A diferencia de la prueba local (sección anterior), aquí el objetivo no era
+comparar latencias entre 1 y 3 réplicas, sino demostrar que el sistema
+responde automáticamente a un aumento real de tráfico en producción — el
+mecanismo de escalamiento horizontal que especifica la sección 9.2 de
+`CONTEXT.md`.
 
 ## T5 — Cierre: cobertura ≥ 90 %
 
